@@ -1,4 +1,3 @@
-#串联(通道空间)_cat_
 import torch
 
 import torch.nn as nn
@@ -80,20 +79,13 @@ class attention(nn.Module):
         x2_out=self.conv2(x2_s)
         return x1_out,x2_out,x1,x2,x1_s,x2_s
 
-class attention1(nn.Module):
+class Resblock(nn.Module):
     def __init__(self,out_ch):
-        super(attention1, self).__init__()
-        self.conv1=Conv(out_ch=out_ch)
-        self.conv2 = Conv(out_ch=out_ch)
-        self.att_ch=ChannelAttentionBlock()
-        self.att_sp=SpatialAttentionBlock()
+        super(Resblock, self).__init__()
+        self.body=nn.Sequential(nn.Conv2d(out_ch, out_ch, 3, 1, 1),nn.LeakyReLU(negative_slope=1e-2,inplace=True),nn.Conv2d(out_ch, out_ch, 3, 1, 1))
     def forward(self, x1,x2):
-        x1=self.conv1(x1)
-        x2=self.conv1(x2)
-        # x1_c,x2_c=self.att_ch(x1,x2)
-        # x1_s,x2_s=self.att_sp(x1_c,x2_c)
-        x1_out=self.conv2(x1)
-        x2_out=self.conv2(x2)
+        x1_out=self.body(x1)
+        x2_out=self.body(x2)
         return x1_out,x2_out
 
 class AF(nn.Module):
@@ -102,9 +94,9 @@ class AF(nn.Module):
         in_ch=args.in_ch
         out_ch=args.out_ch
         self.conv1 = nn.Sequential(nn.Conv2d(in_ch, out_ch, kernel_size=3,stride=1, padding=1, bias=True),nn.LeakyReLU(negative_slope=1e-2,inplace=True))
-        self.sc1=attention1(out_ch)
-        self.sc2 = attention1(out_ch)
-        self.sc3 = attention1(out_ch)
+        self.rb1=Resblock(out_ch)
+        self.rb2 = Resblock(out_ch)
+        self.rb3=Resblock(out_ch)
         self.sc4 = attention(out_ch)
         self.fusion=nn.Conv2d(out_ch*2,out_ch,1,1,0)
         EX3 = [Conv(out_ch=out_ch) for i in range(4)]
@@ -115,9 +107,9 @@ class AF(nn.Module):
     def forward(self,x1,x2):
         F1 =self.conv1(x1)
         F2 =self.conv1(x2)
-        F1,F2=self.sc1(F1,F2)
-        F1,F2 = self.sc2(F1, F2)
-        F1,F2 = self.sc3(F1, F2)
+        F1,F2=self.rb1(F1,F2)
+        F1,F2 = self.rb2(F1, F2)
+        F1,F2 = self.rb3(F1, F2)
         F1,F2,F1_ori,F2_ori,F1_att,F2_att = self.sc4(F1, F2)
         fusion=self.fusion(torch.cat([F1,F2],dim=1))
         fusion= self.EX3(fusion)
