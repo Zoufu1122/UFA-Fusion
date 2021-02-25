@@ -10,4 +10,5 @@
 # To Do
     Clear up train.py and Upload
     upload pre-trained model
+    upload all train dataset(80000)
     write usage
