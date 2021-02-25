@@ -7,3 +7,7 @@
     torchvision
     opencv-python
     anaconda (suggeted)
+# To Do
+    Clear up train.py and Upload
+    upload pre-trained model
+    write usage
